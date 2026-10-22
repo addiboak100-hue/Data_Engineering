@@ -1,0 +1,32 @@
+# Airflow for the crypto pipeline. Start it from the project folder with:
+#     docker compose -f docker-compose.airflow.yml up --build
+# then open http://localhost:8080 (no login: local development only).
+#
+# The project's src/, dags/ and data/ folders are mounted into the container,
+# so the pipeline reads and writes the same data/prices.db and data/metrics
+# that the API and dashboard use.
+
+services:
+  airflow:
+    build: ./docker/airflow
+    container_name: crypto-airflow
+    command: standalone
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env                       # COINGECKO_KEY
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"   # skip login; never expose this port publicly
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"     # schedule starts as soon as the DAG loads
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: "utc"
+      PYTHONPATH: /opt/project
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/project/src
+      - ./data:/opt/project/data
+      - airflow_state:/opt/airflow  # Airflow's own metadata DB and logs survive restarts
+
+volumes:
+  airflow_state:

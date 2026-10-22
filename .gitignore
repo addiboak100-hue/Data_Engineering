@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# pipeline temp files
+data/metrics/.*.tmp
+*.db-journal
+
+# editors / OS
+.vscode/
+.DS_Store
+Thumbs.db

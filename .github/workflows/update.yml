@@ -1,0 +1,49 @@
+name: Update prices
+
+# Fetch yesterday's closes from CoinGecko every day and commit data/prices.db.
+# CoinGecko publishes the completed UTC day at about 00:10 UTC.
+on:
+  schedule:
+    - cron: "37 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-prices
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests python-dotenv pandas numpy
+
+      - name: Run tests
+        run: python -m unittest discover tests
+
+      - name: Fetch prices
+        env:
+          # Optional: add a free CoinGecko Demo key as a repository secret.
+          COINGECKO_KEY: ${{ secrets.COINGECKO_KEY }}
+        run: python -m src.update_prices
+
+      - name: Commit updated database
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data/prices.db
+          if git diff --cached --quiet; then
+            echo "No new data."
+          else
+            git commit -m "Update prices $(date -u +%F)"
+            git push
+          fi

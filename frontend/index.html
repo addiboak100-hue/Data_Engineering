@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sibyl · Crypto Forecast Terminal</title>
+    <meta name="description" content="Live crypto market data with machine-learning price forecasts, uncertainty bands and backtested model accuracy." />
+    <meta name="theme-color" content="#070a12" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-chevron" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" /></symbol>
+      <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" /></symbol>
+      <symbol id="i-close" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" /></symbol>
+      <symbol id="i-up" viewBox="0 0 16 16"><path d="M4 11.5L11.5 4M6 4h5.5v5.5" /></symbol>
+      <symbol id="i-down" viewBox="0 0 16 16"><path d="M4 4.5l7.5 7.5M11.5 6.5V12H6" /></symbol>
+      <symbol id="i-flat" viewBox="0 0 16 16"><path d="M3 8h10M10 5l3 3-3 3" /></symbol>
+      <symbol id="i-alert" viewBox="0 0 16 16"><path d="M8 2.5l6 10.5H2L8 2.5z" /><path d="M8 6.5v3M8 11.3v.2" /></symbol>
+      <symbol id="i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" /><path d="M8 7.5v3.5M8 5.2v.2" /></symbol>
+      <symbol id="i-refresh" viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3" /></symbol>
+      <symbol id="i-play" viewBox="0 0 16 16"><path d="M5 3.5l7 4.5-7 4.5z" /></symbol>
+      <symbol id="i-plug" viewBox="0 0 16 16"><path d="M6 2v3M10 2v3M4.5 5h7v2.5a3.5 3.5 0 0 1-7 0zM8 11v3" /></symbol>
+    </svg>
+
+    <header class="topbar">
+      <div class="wrap">
+        <a class="brand" href="#/dashboard" aria-label="Sibyl home">
+          <svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true">
+            <rect x="0.5" y="0.5" width="25" height="25" rx="7" fill="#121926" stroke="rgba(148,170,210,0.2)" />
+            <path d="M5 18.5l3.6-3.8 3 2 2.9-4.3" fill="none" stroke="#3d8bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M14.5 12.4L19.4 7.6" fill="none" stroke="#b468de" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 3.2" />
+            <circle cx="20.4" cy="6.6" r="2" fill="#b468de" />
+          </svg>
+          <span>Sibyl</span>
+          <span class="brand-name-full faint" style="font-weight: 400">Forecast Terminal</span>
+        </a>
+
+        <nav class="nav" id="nav" aria-label="Primary">
+          <a href="#/dashboard" data-route="dashboard">Dashboard</a>
+          <a href="#/predictions" data-route="predictions">Predictions</a>
+          <a href="#/market" data-route="market">Market Analysis</a>
+          <a href="#/model" data-route="model">Model Insights</a>
+          <a href="#/about" data-route="about">About</a>
+        </nav>
+
+        <div class="topbar-right">
+          <label class="select" title="Selected cryptocurrency">
+            <span class="sr-only">Cryptocurrency</span>
+            <select id="coin-select"></select>
+            <svg class="icon"><use href="#i-chevron" /></svg>
+          </label>
+          <span class="status" id="market-status" data-state="loading" title="Market data status">
+            <span class="dot"></span><span class="status-text">Connecting</span>
+          </span>
+          <span class="status-sep" aria-hidden="true"></span>
+          <span class="status" id="model-status" data-state="checking" title="Model service status">
+            <span class="dot"></span><span class="status-text">Model</span>
+          </span>
+          <button class="btn btn-quiet menu-btn" id="menu-btn" aria-controls="nav" aria-expanded="false" aria-label="Open menu">
+            <svg class="icon"><use href="#i-menu" /></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <div class="wrap" id="view"></div>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <div>
+          <h4>Sibyl</h4>
+          <p>
+            A crypto price forecasting project: live market data, a time-series model served over a small API, and this interface for exploring
+            its forecasts and measured accuracy.
+          </p>
+        </div>
+        <div>
+          <h4>Data</h4>
+          <ul>
+            <li>Market data by <a href="https://www.coingecko.com" target="_blank" rel="noopener">CoinGecko</a></li>
+            <li>Forecasts from the Sibyl model service</li>
+            <li id="footer-model">Model service: checking</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Disclaimer</h4>
+          <p>Forecasts are statistical estimates, not financial advice. Crypto prices are highly volatile and can move far outside any forecast range.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
