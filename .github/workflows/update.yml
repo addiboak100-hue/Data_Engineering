@@ -1,49 +1,94 @@
-name: Update prices
+name: Pipeline and site
 
-# Fetch yesterday's closes from CoinGecko every day and commit data/prices.db.
-# CoinGecko publishes the completed UTC day at about 00:10 UTC.
+# Daily: run the full pipeline on GitHub's machines (fetch → validate →
+# forecast → backtest → score → publish), commit the updated data, then deploy
+# the dashboard plus the published forecasts to GitHub Pages.
+# On a push that changes the dashboard: redeploy the site from the committed
+# data, without re-running the model.
 on:
   schedule:
-    - cron: "37 0 * * *"
+    - cron: "37 0 * * *"   # after CoinGecko publishes the previous day (~00:10 UTC)
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "data/published/**"
 
 permissions:
-  contents: write
+  contents: write   # commit the daily data
+  pages: write      # deploy the site
+  id-token: write   # required by deploy-pages
 
 concurrency:
-  group: update-prices
+  group: pipeline-and-site
   cancel-in-progress: false
 
 jobs:
-  update:
+  pipeline:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+          cache: pip
 
       - name: Install dependencies
-        run: pip install requests python-dotenv pandas numpy
+        run: pip install -r requirements.txt
 
       - name: Run tests
         run: python -m unittest discover tests
 
-      - name: Fetch prices
+      - name: Run pipeline
         env:
-          # Optional: add a free CoinGecko Demo key as a repository secret.
           COINGECKO_KEY: ${{ secrets.COINGECKO_KEY }}
-        run: python -m src.update_prices
+        run: python -m src.pipeline
 
-      - name: Commit updated database
+      - name: Commit updated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add data/prices.db
+          git add data/prices.db data/metrics data/published
           if git diff --cached --quiet; then
-            echo "No new data."
+            echo "No data changes."
           else
-            git commit -m "Update prices $(date -u +%F)"
+            git commit -m "Daily pipeline run $(date -u +%F)"
+            git pull --rebase --autostash
             git push
           fi
+
+  deploy:
+    needs: pipeline
+    # Deploy after a successful pipeline run, or on a push (pipeline skipped).
+    # If validation failed, nothing is deployed and the last good site stays up.
+    if: always() && (needs.pipeline.result == 'success' || needs.pipeline.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main   # include the data the pipeline job just committed
+
+      - name: Assemble site
+        run: |
+          mkdir _site
+          cp -r frontend/. _site/
+          rm -rf _site/tests _site/package.json _site/README.md _site/data
+          if [ -d data/published ]; then cp -r data/published _site/data; fi
+          touch _site/.nojekyll
+          echo "Site contents:"; find _site -maxdepth 2 | sort | head -40
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
