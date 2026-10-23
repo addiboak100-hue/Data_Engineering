@@ -1,6 +1,6 @@
 """Airflow DAG for the crypto forecasting pipeline.
 
-    fetch_prices ─► validate_prices ─┬─► record_forecasts ─┬─► score_forecasts
+    fetch_prices ─► validate_prices ─┬─► record_forecasts ─┬─► score_forecasts ─► publish_static
                                      └─► run_backtest ─────┘
 
 Runs daily at 00:37 UTC, after CoinGecko publishes the previous day's close
@@ -71,11 +71,17 @@ def crypto_forecast_pipeline():
         live = pipeline.score()
         return {coin: {"n": m["n"], "mape": m["mape"], "coverage": m["coverage"]} for coin, m in live.items()}
 
+    @task
+    def publish_static() -> dict:
+        from src import pipeline
+
+        return pipeline.publish()
+
     validated = fetch_prices() >> validate_prices()
     forecasts = record_forecasts()
     backtests = run_backtest()
     validated >> [forecasts, backtests]
-    [forecasts, backtests] >> score_forecasts()
+    [forecasts, backtests] >> score_forecasts() >> publish_static()
 
 
 crypto_forecast_pipeline()

@@ -50,5 +50,10 @@ export function directionBlock(d, horizon) {
   </div>`;
 }
 
-export const offlineHelp = (base) =>
-  `<p style="margin-top:4px">Start the prediction service at <code>${esc(base)}</code> and this panel connects automatically. The expected endpoints are in <code>docs/api-contract.md</code>.</p>`;
+export const offlineHelp = (base, isStatic = false) =>
+  isStatic
+    ? `<p style="margin-top:4px">Forecasts are published once a day by the data pipeline, and none are available right now. Live prices and market analysis still work.</p>`
+    : `<p style="margin-top:4px">Start the prediction service at <code>${esc(base)}</code> and this panel connects automatically. The expected endpoints are in <code>docs/api-contract.md</code>.</p>`;
+
+/** Heading used when forecasts aren't available, in either mode. */
+export const offlineTitle = (isStatic) => (isStatic ? "Forecasts unavailable" : "Model service offline");

@@ -2,7 +2,7 @@ import { modelApi } from "../api/model.js";
 import { createTimeChart } from "../charts/timeChart.js";
 import { formatDate, formatDateTime, formatNumber, formatPct, formatUsd } from "../format.js";
 import { checkModel, coinMeta, getState, isPredictable, loadMetrics, subscribe } from "../store.js";
-import { esc, icon, notice, offlineHelp, skel } from "../components/ui.js";
+import { esc, icon, notice, offlineHelp, offlineTitle, skel } from "../components/ui.js";
 
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
@@ -68,12 +68,14 @@ export function mountModel(view) {
         ${m.info.trainedAt ? `<div><dt>Last trained</dt><dd>${esc(formatDateTime(m.info.trainedAt))}</dd></div>` : ""}
         <div><dt>Coins</dt><dd>${m.coins.map((c) => esc(c.symbol)).join(", ")}</dd></div>
         <div><dt>Horizons</dt><dd>${m.horizons.map((h) => `${h}d`).join(", ")}</dd></div>
-        <div><dt>Service</dt><dd>${esc(modelApi.base)}</dd></div>
+        ${modelApi.isStatic
+          ? `<div><dt>Published</dt><dd>${m.info.publishedAt ? esc(formatDateTime(m.info.publishedAt)) : "Daily"}</dd></div>`
+          : `<div><dt>Service</dt><dd>${esc(modelApi.base)}</dd></div>`}
       </dl>`;
     } else if (m.status === "checking" && !m.checkedAt) {
       statusEl.innerHTML = skel("320px", 16);
     } else {
-      statusEl.innerHTML = notice("warn", "Model service offline", offlineHelp(modelApi.base), `<button class="btn" data-retry-model>${icon("refresh")}Check again</button>`);
+      statusEl.innerHTML = notice("warn", offlineTitle(modelApi.isStatic), offlineHelp(modelApi.base, modelApi.isStatic), `<button class="btn" data-retry-model>${icon("refresh")}Check again</button>`);
     }
 
     const mt = st.metrics[st.coinId];

@@ -18,6 +18,8 @@ Steps
   backtest   rolling-origin backtest per coin → data/metrics + metrics_history
   score      compares stored forecasts whose day has arrived with real prices:
              live MAPE, naive MAPE, and how often the 80% band held the price
+  publish    writes the API's responses as static JSON (data/published/) so
+             the dashboard can be hosted without a server
 """
 
 from __future__ import annotations
@@ -224,12 +226,20 @@ def score(coins=None, *, db_path=config.DB_PATH, today: date | None = None) -> d
 
 # ---- runner -----------------------------------------------------------------
 
+def publish() -> dict:
+    """Write the API's responses as static JSON (data/published/) for hosting."""
+    from src import export_static
+
+    return export_static.export()
+
+
 STEPS = {
     "fetch": fetch,
     "validate": validate,
     "forecast": record_forecasts,
     "backtest": backtest,
     "score": score,
+    "publish": publish,
 }
 
 

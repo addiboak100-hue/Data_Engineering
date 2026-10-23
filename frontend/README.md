@@ -23,6 +23,15 @@ Forecasts, accuracy metrics and backtests appear once the model service is runni
 To point at a different address, open `http://localhost:5173/?api=http://host:port`
 (remembered in the browser) or edit `js/config.js`.
 
+## Two data sources
+
+The dashboard picks where forecasts come from:
+
+- **On `localhost`:** the live Python API (`src/api.py`). **Run forecast** fits the model on request.
+- **Anywhere else, e.g. GitHub Pages:** static JSON published daily by the pipeline (`data/`, built from `data/published/`). The button reads **Show forecast** and loads that day's precomputed result.
+
+Force either one with `?source=api` or `?source=static`. Both return identical shapes, so every page works the same way.
+
 ## Tests
 
 ```bash

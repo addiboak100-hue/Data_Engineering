@@ -19,7 +19,28 @@ function readOverride() {
   }
 }
 
-export const MODEL_API_BASE = (readOverride() || DEFAULT_MODEL_API_BASE).replace(/\/+$/, "");
+const apiOverride = readOverride();
+export const MODEL_API_BASE = (apiOverride || DEFAULT_MODEL_API_BASE).replace(/\/+$/, "");
+
+// Where forecasts come from:
+//   "api"    the live Python service (src/api.py), used when running locally
+//   "static" JSON files published daily by the pipeline (data/), used when the
+//            site is hosted, e.g. on GitHub Pages, where no server runs
+// ?source=api or ?source=static forces one for testing.
+function pickSource() {
+  try {
+    const forced = new URLSearchParams(window.location.search).get("source");
+    if (forced === "api" || forced === "static") return forced;
+  } catch {
+    /* ignore */
+  }
+  if (apiOverride) return "api";
+  const host = typeof window === "undefined" ? "" : window.location.hostname;
+  return host === "localhost" || host === "127.0.0.1" || host === "" ? "api" : "static";
+}
+
+export const MODEL_SOURCE = pickSource();
+export const STATIC_DATA_BASE = "data"; // relative, so it works under any sub-path
 
 // Public CoinGecko API: no key required, so nothing secret ships to the browser.
 // Keep COINGECKO_KEY / CMC_API_KEY in .env for the Python backend only.

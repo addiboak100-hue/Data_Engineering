@@ -12,6 +12,14 @@ CoinGecko ──► src/update_prices.py ──► data/prices.db ──► src/
                      src/train_predict.py (backtest → data/metrics/*.json)
 ```
 
+## Live site
+
+The dashboard is hosted on GitHub Pages, with no server: **https://addiboak100-hue.github.io/Data_Engineering/**
+
+Every night a GitHub Actions workflow (`.github/workflows/update.yml`) runs the full pipeline on GitHub's machines, commits the updated data, and publishes the forecasts as static JSON (`data/published/`) next to the dashboard. Visitors' browsers fetch live prices from CoinGecko directly and read the day's forecasts from those files. If validation fails, nothing is deployed and the previous day's site stays up.
+
+Running locally, the same dashboard talks to the live API instead (it picks automatically: API on `localhost`, published files anywhere else; force either with `?source=api` or `?source=static`).
+
 ## Quick start
 
 Python 3.9–3.12 recommended (Prophet ships wheels for these).
@@ -46,7 +54,7 @@ python -m src.train_predict --forecast bitcoin --horizon 7
 A daily pipeline keeps everything current and builds a real track record:
 
 ```
-fetch_prices ─► validate_prices ─┬─► record_forecasts ─┬─► score_forecasts
+fetch_prices ─► validate_prices ─┬─► record_forecasts ─┬─► score_forecasts ─► publish_static
                                  └─► run_backtest ─────┘
 ```
 
@@ -57,6 +65,7 @@ fetch_prices ─► validate_prices ─┬─► record_forecasts ─┬─► s
 | **forecast** | Stores a 30-day forecast per coin, kept forever | `forecasts` |
 | **backtest** | Rolling-origin backtest: error, naive baseline, 80% band hit rate | `data/metrics/*.json`, `metrics_history` |
 | **score** | Scores stored forecasts whose day has arrived against the real price | `live` block in metrics JSON, `metrics_history` |
+| **publish** | Writes the API's responses as static JSON for the hosted site | `data/published/` |
 
 Every write is an upsert keyed on coin and date, so re-running any step is safe.
 The dashboard's **Model Insights** page shows the live track record once the first forecasts mature.
@@ -104,8 +113,9 @@ cd frontend && node --test tests/*.test.mjs  # frontend logic
 | `src/models.py` | Prophet wrapper, backtest, error metrics |
 | `src/train_predict.py` | Evaluation CLI and the forecast function the API uses |
 | `src/api.py` | HTTP API, see `docs/api-contract.md` |
-| `src/pipeline.py` | Pipeline steps: fetch, validate, forecast, backtest, score |
+| `src/pipeline.py` | Pipeline steps: fetch, validate, forecast, backtest, score, publish |
+| `src/export_static.py` | Writes API responses as static JSON for the hosted site |
 | `dags/crypto_pipeline.py` | Airflow DAG wrapping the pipeline steps |
 | `docker-compose.airflow.yml`, `docker/airflow/` | Airflow 3 in Docker, with Prophet installed |
 | `frontend/` | Dashboard (no build step), see `frontend/README.md` |
-| `.github/workflows/update.yml` | Daily price refresh on GitHub Actions |
+| `.github/workflows/update.yml` | Nightly pipeline on GitHub Actions + deploy to GitHub Pages |

@@ -1,6 +1,7 @@
 import { MARKET_COINS } from "./config.js";
 import { formatRelative } from "./format.js";
 import { coinMeta, getState, marketHealth, setCoin, startPolling, subscribe } from "./store.js";
+import { modelApi } from "./api/model.js";
 import { mountDashboard } from "./pages/dashboard.js";
 import { mountPredictions } from "./pages/predictions.js";
 import { mountMarket } from "./pages/market.js";
@@ -99,11 +100,15 @@ function renderStatuses() {
 
   const m = st.model;
   modelStatus.dataset.state = m.status === "checking" && m.checkedAt ? "checking" : m.status;
-  const t = { online: "Model online", offline: "Model offline", checking: "Checking model" }[m.status];
+  const t = modelApi.isStatic
+    ? { online: "Forecasts published", offline: "No forecasts", checking: "Loading forecasts" }[m.status]
+    : { online: "Model online", offline: "Model offline", checking: "Checking model" }[m.status];
   modelStatus.querySelector(".status-text").textContent = t;
   modelStatus.title = m.status === "online" ? `${m.info.name}${m.info.version ? ` ${m.info.version}` : ""}` : (m.error ?? "Prediction service");
   modelStatus.setAttribute("aria-label", t);
-  footerModel.textContent = m.status === "online" ? `Model service: online (${m.info.name})` : m.status === "offline" ? "Model service: offline" : "Model service: checking";
+  footerModel.textContent = modelApi.isStatic
+    ? m.status === "online" ? `Forecasts: published daily (${m.info.name})` : "Forecasts: not published yet"
+    : m.status === "online" ? `Model service: online (${m.info.name})` : m.status === "offline" ? "Model service: offline" : "Model service: checking";
 }
 
 subscribe((_, change) => {

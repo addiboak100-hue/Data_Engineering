@@ -12,3 +12,6 @@ data/metrics/.*.tmp
 .vscode/
 .DS_Store
 Thumbs.db
+
+# local preview of the static site
+frontend/data/

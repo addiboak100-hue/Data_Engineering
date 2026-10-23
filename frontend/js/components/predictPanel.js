@@ -15,7 +15,7 @@ import {
   setHorizon,
   subscribe,
 } from "../store.js";
-import { changeChip, directionBlock, esc, forecastDirection, icon, notice, offlineHelp, skel } from "./ui.js";
+import { changeChip, directionBlock, esc, forecastDirection, icon, notice, offlineHelp, offlineTitle, skel } from "./ui.js";
 
 export function mountPredictPanel(el, { compact = false } = {}) {
   el.classList.add("panel", "predict");
@@ -39,7 +39,7 @@ export function mountPredictPanel(el, { compact = false } = {}) {
     clearInterval(timer);
 
     if (m.status === "checking" && !m.checkedAt) {
-      el.innerHTML = `<h2>Run a forecast</h2>
+      el.innerHTML = `<h2>${modelApi.isStatic ? "Forecast" : "Run a forecast"}</h2>
         <div class="field">${skel("40%", 12)}${skel("100%", 36)}</div>
         <div class="field">${skel("40%", 12)}${skel("100%", 34)}</div>
         ${skel("100%", 40)}
@@ -48,8 +48,8 @@ export function mountPredictPanel(el, { compact = false } = {}) {
     }
 
     if (m.status !== "online") {
-      el.innerHTML = `<h2>Run a forecast</h2>
-        ${notice("warn", "Model service offline", offlineHelp(modelApi.base))}
+      el.innerHTML = `<h2>${modelApi.isStatic ? "Forecast" : "Run a forecast"}</h2>
+        ${notice("warn", offlineTitle(modelApi.isStatic), offlineHelp(modelApi.base, modelApi.isStatic))}
         <button class="btn btn-block" type="button" data-retry-model ${m.status === "checking" ? "disabled" : ""}>
           ${m.status === "checking" ? '<span class="spinner" style="border-top-color:var(--text)"></span>Checking' : `${icon("refresh")}Check again`}
         </button>
@@ -101,7 +101,7 @@ export function mountPredictPanel(el, { compact = false } = {}) {
     }
 
     el.innerHTML = `
-      <h2>Run a forecast</h2>
+      <h2>${modelApi.isStatic ? "Forecast" : "Run a forecast"}</h2>
       <div class="field">
         <label class="label" for="pp-coin">Cryptocurrency</label>
         <span class="select"><select id="pp-coin" ${running ? "disabled" : ""}>${supported ? "" : `<option selected disabled>${esc(meta.name)} (not modelled)</option>`}${coinOptions}</select><svg class="icon"><use href="#i-chevron"/></svg></span>
@@ -113,17 +113,18 @@ export function mountPredictPanel(el, { compact = false } = {}) {
         </div>
       </div>
       <button class="btn btn-primary btn-block" type="button" data-run ${running || !supported ? "disabled" : ""}>
-        ${running ? `<span class="spinner"></span><span id="pp-elapsed">Running forecast</span>` : `${icon("play")}${pred?.data ? "Run again" : "Run forecast"}`}
+        ${running ? `<span class="spinner"></span><span id="pp-elapsed">${modelApi.isStatic ? "Loading forecast" : "Running forecast"}</span>` : `${icon("play")}${modelApi.isStatic ? "Show forecast" : pred?.data ? "Run again" : "Run forecast"}`}
       </button>
       ${body}
       ${result}
-      ${!compact && supported && !pred ? `<p class="label">Fits the model on the latest prices and forecasts ${st.horizon} day${st.horizon === 1 ? "" : "s"} ahead.</p>` : ""}`;
+      ${!compact && supported && !pred ? `<p class="label">${modelApi.isStatic ? `Shows today's ${st.horizon}-day forecast, computed overnight by the data pipeline.` : `Fits the model on the latest prices and forecasts ${st.horizon} day${st.horizon === 1 ? "" : "s"} ahead.`}</p>` : ""}`;
 
     if (running) {
       const out = el.querySelector("#pp-elapsed");
       const tick = () => {
         const s = Math.round((Date.now() - pred.startedAt) / 1000);
-        if (out) out.textContent = s >= 3 ? `Running forecast (${s}s)` :"Running forecast";
+        const label = modelApi.isStatic ? "Loading forecast" : "Running forecast";
+        if (out) out.textContent = s >= 3 ? `${label} (${s}s)` : label;
       };
       tick();
       timer = setInterval(tick, 1000);

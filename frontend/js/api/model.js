@@ -2,7 +2,7 @@
 // docs/api-contract.md. Every response is validated here; anything malformed
 // is rejected rather than drawn, so the UI never shows a made-up forecast.
 
-import { MODEL_API_BASE } from "../config.js";
+import { MODEL_API_BASE, MODEL_SOURCE, STATIC_DATA_BASE } from "../config.js";
 import { ApiError, fetchJson } from "./http.js";
 
 const isNum = (v) => typeof v === "number" && Number.isFinite(v);
@@ -25,6 +25,7 @@ export function parseHealth(raw) {
       name: isStr(m.name) ? m.name : "Forecast model",
       version: isStr(m.version) ? m.version : null,
       trainedAt: toMs(m.trained_at),
+      publishedAt: toMs(raw.published_at), // static exports only
     },
   };
 }
@@ -138,16 +139,29 @@ function parseLive(raw, metric) {
 }
 
 const url = (path) => `${MODEL_API_BASE}${path}`;
+const file = (path) => `${STATIC_DATA_BASE}/${path}`;
+const isStatic = MODEL_SOURCE === "static";
 
 export const modelApi = {
   base: MODEL_API_BASE,
+  isStatic,
   async health(signal) {
-    return parseHealth(await fetchJson(url("/api/health"), { timeoutMs: 4000, signal }));
+    const raw = isStatic
+      ? await fetchJson(file("health.json"), { timeoutMs: 8000, signal })
+      : await fetchJson(url("/api/health"), { timeoutMs: 4000, signal });
+    return parseHealth(raw);
   },
   async coins(signal) {
-    return parseCoins(await fetchJson(url("/api/coins"), { timeoutMs: 6000, signal }));
+    const raw = isStatic
+      ? await fetchJson(file("coins.json"), { timeoutMs: 8000, signal })
+      : await fetchJson(url("/api/coins"), { timeoutMs: 6000, signal });
+    return parseCoins(raw);
   },
   async predict(coinId, horizonDays, signal) {
+    if (isStatic) {
+      const name = `${encodeURIComponent(coinId)}-${Number(horizonDays)}.json`;
+      return parsePrediction(await fetchJson(file(`predict/${name}`), { timeoutMs: 15_000, signal }));
+    }
     return parsePrediction(
       await fetchJson(url("/api/predict"), {
         method: "POST",
@@ -158,12 +172,19 @@ export const modelApi = {
     );
   },
   async metrics(coinId, signal) {
-    return parseMetrics(await fetchJson(url(`/api/metrics?coin_id=${encodeURIComponent(coinId)}`), { timeoutMs: 15_000, signal }));
+    const raw = isStatic
+      ? await fetchJson(file(`metrics/${encodeURIComponent(coinId)}.json`), { timeoutMs: 15_000, signal })
+      : await fetchJson(url(`/api/metrics?coin_id=${encodeURIComponent(coinId)}`), { timeoutMs: 15_000, signal });
+    return parseMetrics(raw);
   },
 };
 
 export function describeModelError(err) {
   if (!(err instanceof ApiError)) return "The forecast couldn't be completed.";
+  if (isStatic) {
+    if (err.kind === "network" || err.status === 404) return "This forecast hasn't been published yet. The pipeline updates forecasts once a day.";
+    return "The published forecast data couldn't be read.";
+  }
   if (err.kind === "network") return `The model service at ${MODEL_API_BASE} isn't responding.`;
   if (err.kind === "timeout") return "The model took too long to respond. Try a shorter horizon or run it again.";
   if (err.status === 404) return "The model service doesn't support this request yet.";

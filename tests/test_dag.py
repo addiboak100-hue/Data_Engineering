@@ -11,8 +11,8 @@ import unittest
 from pathlib import Path
 
 DAG_FILE = Path(__file__).resolve().parent.parent / "dags" / "crypto_pipeline.py"
-TASKS = {"fetch_prices", "validate_prices", "record_forecasts", "run_backtest", "score_forecasts"}
-STEP_CALLS = {"fetch", "validate", "record_forecasts", "backtest", "score"}
+TASKS = {"fetch_prices", "validate_prices", "record_forecasts", "run_backtest", "score_forecasts", "publish_static"}
+STEP_CALLS = {"fetch", "validate", "record_forecasts", "backtest", "score", "publish"}
 
 
 class DagSource(unittest.TestCase):
@@ -51,6 +51,7 @@ class DagLoads(unittest.TestCase):
         self.assertEqual(set(dag.task_ids), TASKS)
         self.assertEqual(dag.get_task("validate_prices").upstream_task_ids, {"fetch_prices"})
         self.assertEqual(dag.get_task("score_forecasts").upstream_task_ids, {"record_forecasts", "run_backtest"})
+        self.assertEqual(dag.get_task("publish_static").upstream_task_ids, {"score_forecasts"})
 
 
 if __name__ == "__main__":

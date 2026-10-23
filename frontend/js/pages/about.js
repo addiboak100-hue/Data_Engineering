@@ -52,6 +52,10 @@ export function mountAbout(view) {
   const svc = view.querySelector("#svc-status");
   const render = () => {
     const m = getState().model;
+    if (modelApi.isStatic) {
+      svc.textContent = m.status === "online" ? "Published daily as static files" : m.status === "checking" ? "Checking…" : "No published forecasts yet";
+      return;
+    }
     svc.textContent = m.status === "online" ? `Online at ${modelApi.base}` : m.status === "checking" ? "Checking service…" : `Offline, expected at ${modelApi.base}`;
   };
   render();
