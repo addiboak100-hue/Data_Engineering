@@ -42,7 +42,17 @@ body{background:var(--color-bg);color:var(--color-fg);font-family:var(--font-ant
 </head>
 <body>
 <div id="dash-root">
-<div class="sa-top"><a href="https://addiboak100-hue.github.io/#work">← Addison Joshua Boakye · Portfolio</a><span style="color:var(--color-fg-muted)">Data engineering case study</span></div>
+<div class="sa-top"><a id="sa-back" href="https://addiboak100-hue.github.io/#work">← Addison Joshua Boakye · Portfolio</a><span id="sa-kind" style="color:var(--color-fg-muted)">Data engineering case study</span></div>
+<script>
+/* Send "back" to whichever portfolio linked here: ?from=data-scientist, else the referrer. */
+(function () {
+  let ds = false;
+  try { ds = new URLSearchParams(location.search).get('from') === 'data-scientist' || /\/data-scientist\//.test(document.referrer); } catch (e) {}
+  if (!ds) return;
+  document.getElementById('sa-back').href = 'https://addiboak100-hue.github.io/data-scientist/#work';
+  document.getElementById('sa-kind').textContent = 'Data science case study';
+})();
+</script>
 <style>
 #dash-root .sc{font-family:var(--font-anthropic-sans);color:var(--color-fg);display:grid;gap:var(--cds-gap-lg)}
 .sc-head{display:grid;gap:var(--cds-gap-xs)}
